@@ -1,0 +1,67 @@
+# agents/query_generator.py
+
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import LLMChain
+from dotenv import load_dotenv
+import os
+import logging
+from rich.console import Console
+
+console = Console()
+load_dotenv()
+
+# Initialize the logger
+logger = logging.getLogger(__name__)
+
+# Initialize the OpenAI LLM with LangChain
+llm = ChatOpenAI(temperature=0.0,model_name="gpt-4o-mini")
+
+def generate_pandas_query(question, schema):
+    logger.info("Generating pandas query.")
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
+                You are a data analyst. Based on the following schema and question, generate an efficient pandas query.
+                Return only the pandas query code without any explanations. You should return the code not human-like text.
+                The code should not have any comments.
+                You should not put any code in triple backticks.
+                The query result should be store in a variable named 'query_result'
+                For example: 
+                    query_result = df[["column1", "column2"]]
+                Schema:
+                {schema}
+
+                Pandas Query:
+                """,
+            ),
+            ("human", "{question}"),
+        ]
+    )
+    chain = prompt | llm 
+    _input = {"schema": schema, "question": question}
+    response = chain.invoke(_input)
+
+
+    # Extract the query code from the response
+    code = response.content.strip()
+    console.log(f"Generated code: {code}")
+
+    # Sanitize and validate the code if necessary
+    # if 'query' in code:
+    #     try:
+    #         exec_globals = {}
+    #         exec(code, {}, exec_globals)
+    #         pandas_query = exec_globals.get("query", "")
+    #     except Exception as e:
+    #         logger.error(f"Error executing generated code: {e}")
+    #         pandas_query = ""
+    # else:
+    #     pandas_query = code  # Assuming the code itself is the query string
+
+    pandas_query = code
+    logger.info(f"Generated pandas query: {pandas_query}")
+    return pandas_query
