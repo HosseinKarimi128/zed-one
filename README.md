@@ -1,12 +1,10 @@
-![SmartData AI Banner](./logo.png)
+![Zed-One Banner](./logo.png)
 
-# SmartData AI
-
-![SmartData AI Logo](./banner.png)
+# Zed-One
 
 ## 🚀 Introduction
 
-Welcome to **SmartData AI**, an intelligent data analysis application that leverages the power of OpenAI's GPT-4 to provide insightful data queries and visualizations. Whether you're a data analyst, business professional, or enthusiast, SmartData AI simplifies data exploration by allowing you to interact with your datasets using natural language.
+Welcome to **Zed-One**, an intelligent data analysis application that leverages the power of OpenAI's GPT-4 to provide insightful data queries and visualizations. Whether you're a data analyst, business professional, or enthusiast, Zed-One simplifies data exploration by allowing you to interact with your datasets using natural language.
 
 ## 🛠 Features
 
@@ -19,7 +17,7 @@ Welcome to **SmartData AI**, an intelligent data analysis application that lever
 
 ## 📈 Demo
 
-![SmartData AI Demo](https://will-be-here-soon.gif)
+![Zed-One Demo](https://will-be-here-soon.gif)
 
 ## 🧰 Technologies Used
 
