@@ -10,3 +10,9 @@ openai
 chromadb
 langchain-community
 langchain-openai
+rich
+plotly
+streamlit
+requests
+pandas
+python-multipart
