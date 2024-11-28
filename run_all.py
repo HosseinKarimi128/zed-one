@@ -43,7 +43,7 @@ def stream_error(process, name):
     Reads the error output from a subprocess and prints it with a prefix.
     """
     for line in iter(process.stderr.readline, ''):
-        print(f"[{name} ]: {line}", end='')
+        print(f"[{name}]: {line}", end='')
 
 def main():
     parser = argparse.ArgumentParser(description="Run FastAPI and Streamlit")
@@ -98,8 +98,8 @@ def main():
         sys.exit(0)
 
     # Register the shutdown function for SIGINT and SIGTERM
-    signal.signal(signal.SIGINT, shutdown)
-    signal.signal(signal.SIGTERM, shutdown)
+    # signal.signal(signal.SIGINT, shutdown)
+    # signal.signal(signal.SIGTERM, shutdown)
 
     # Wait for all processes to complete
     try:
