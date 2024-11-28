@@ -1,7 +1,8 @@
-```markdown
-![SmartData AI Banner](https://github.com/HosseinKarimi128/zed-one/banner.png)
+![SmartData AI Banner](https://drive.google.com/drive-viewer/AKGpihZM0gmzDn-2yV4JtTRqq6Lk5KYsI8XeWoJpA_mGeweicmthNhfMjN964PfyfE9xbjNUFfhzypmAaqgCy2JMSe5ovJeVwPDJ4WY=s1600-rw-v1)
 
 # SmartData AI
+
+![SmartData AI Logo](https://drive.google.com/drive-viewer/AKGpihY_eUbrA7kEVA0MDaL6KT0k2JgGfU-Lt3XpAHUCHiiu9qlXNCEBvDp-wu-eMevFOW-iPgKNo-533siLOLQz_JTwJTuyZ-BHO_Y=s2560)
 
 ## 🚀 Introduction
 
