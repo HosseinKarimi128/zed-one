@@ -1,83 +1,3 @@
-# # agents/visualizer.py
-
-# from langchain_openai import ChatOpenAI
-# from langchain_core.prompts import ChatPromptTemplate
-# from dotenv import load_dotenv
-# import os
-# import matplotlib.pyplot as plt
-# import logging
-# from rich.console import Console
-
-# console = Console()
-# load_dotenv()
-
-# # Initialize the logger
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# # Initialize the OpenAI LLM with LangChain
-# llm = ChatOpenAI(temperature=0.0, model_name="gpt-4o-mini")
-
-# def generate_matplotlib_code(question, schema):
-#     logger.info("Generating matplotlib code.")
-#     prompt = ChatPromptTemplate.from_messages(
-#         [
-#         (
-#             "system",
-#             """
-#             You are a data visualization expert. Based on the following schema and question, generate matplotlib code to visualize the data appropriately.
-#             Provide only the code between triple backticks. the user passed the dataframe as df variable, you should not read the csv the df is input.
-
-#             Schema:
-#             {schema}
-
-#             ```python
-#             # Matplotlib code here
-#             ```
-#             """,
-#         ),
-#         ("human", "{question}"),
-#         ]
-#     )
-
-#     chain = prompt | llm 
-#     _input = {"schema": schema, "question": question}
-    
-#     response = chain.invoke(_input)
-
-#     logger.debug(f"LLM response: {response.content}")
-
-#     # Extract code between ```python and ```
-#     code = extract_code_block(response.content)
-
-#     logger.debug(f"Extracted code: {code}")
-
-#     return code.strip()
-
-# def extract_code_block(response):
-#     import re
-#     code_match = re.search(r'```python(.*?)```', response, re.DOTALL)
-#     if code_match:
-#         code = code_match.group(1)
-#     else:
-#         code = response
-#     return code
-
-# def save_plot(code, df):
-#     logger.info("Saving plot.")
-#     # Prepare a namespace for exec
-#     namespace = {'df': df, 'plt': plt}
-#     try:
-#         exec(code, namespace)
-#         plot_filename = 'plot.png'
-#         plt.savefig(plot_filename)
-#         plt.close()
-#         logger.info(f"Plot saved as {plot_filename}")
-#         return plot_filename
-#     except Exception as e:
-#         logger.error(f"Error generating plot: {e}")
-#         return None
-
-
 # agents/visualizer.py
 
 from langchain_openai import ChatOpenAI
@@ -89,6 +9,7 @@ import plotly.graph_objects as go
 import plotly.express as px  # Import Plotly Express
 import logging
 from rich.console import Console
+import ast
 
 console = Console()
 load_dotenv()
@@ -96,8 +17,10 @@ load_dotenv()
 # Initialize the logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 # Initialize the OpenAI LLM with LangChain
 llm = ChatOpenAI(temperature=0.0, model_name="gpt-4o-mini")
+
 
 def generate_plotly_code(question, schema):
     logger.info("Generating Plotly code.")
@@ -110,8 +33,10 @@ def generate_plotly_code(question, schema):
                 Provide only the Python code that creates a Plotly figure named 'fig'. Do not include any explanations or comments.
                 Do not include code to read the dataframe; assume the dataframe is provided as 'df'.
                 Ensure that all arguments to Plotly functions come from the same DataFrame to avoid length mismatches.
+                Do not include any commands that display or show the figure, such as `fig.show()`.
                 You may use Plotly Express (imported as px) or Plotly Graph Objects (imported as go).
-                Do not use triple backticks to generate the code.
+                Do not use triple backticks.
+
                 Schema:
                 {schema}
 
@@ -122,9 +47,9 @@ def generate_plotly_code(question, schema):
         ]
     )
 
-    chain = prompt | llm 
+    chain = prompt | llm
     _input = {"schema": schema, "question": question}
-    
+
     response = chain.invoke(_input)
 
     logger.debug(f"LLM response: {response.content}")
@@ -137,8 +62,73 @@ def generate_plotly_code(question, schema):
     logger.info(f"Generated Plotly code: {plotly_code}")
     return plotly_code
 
-def save_plot(plotly_code, df):
-    logger.info("Saving Plotly plot.")
+
+def validate_plotly_code(plotly_code, df):
+    """
+    Validates that the generated Plotly code creates a 'fig' object and that
+    the 'x', 'y', and 'text' arguments (if any) have consistent lengths.
+    """
+    try:
+        tree = ast.parse(plotly_code)
+        plot_call = None
+        plot_type = None
+
+        # Find any function call of the form px.<something>(...)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                if isinstance(node.func.value, ast.Name) and node.func.value.id == 'px':
+                    plot_call = node
+                    plot_type = node.func.attr  # e.g., 'bar', 'box', etc.
+                    break
+
+        if not plot_call:
+            raise ValueError("No px.<plot_type> call found in the generated code.")
+
+        args = {}
+        for keyword in plot_call.keywords:
+            args[keyword.arg] = keyword.value
+
+        # Ensure 'x' and 'y' are present
+        if 'x' not in args or 'y' not in args:
+            raise ValueError("'x' and 'y' arguments are required in the Plotly express call.")
+
+        # Extract column names from 'x' and 'y'
+        def extract_column(arg_node):
+            if isinstance(arg_node, ast.Str):
+                return arg_node.s
+            elif isinstance(arg_node, ast.Constant) and isinstance(arg_node.value, str):
+                return arg_node.value
+            else:
+                raise ValueError("Unsupported argument type for 'x' or 'y'.")
+
+        x_col = extract_column(args['x'])
+        y_col = extract_column(args['y'])
+
+        # Check if columns exist in DataFrame
+        if x_col not in df.columns or y_col not in df.columns:
+            raise ValueError(f"Columns '{x_col}' and/or '{y_col}' not found in dataframe.")
+
+        # Check lengths
+        x_length = len(df[x_col])
+        y_length = len(df[y_col])
+
+        if 'text' in args:
+            text_col = extract_column(args['text'])
+            if text_col not in df.columns:
+                raise ValueError(f"Text column '{text_col}' not found in dataframe.")
+            text_length = len(df[text_col])
+            if text_length != x_length or text_length != y_length:
+                raise ValueError("Length mismatch between 'x', 'y', and 'text' arguments.")
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Validation error: {e}")
+        return False
+
+
+def get_plotly_json(plotly_code, df):
+    logger.info("Generating Plotly JSON.")
     # Prepare a namespace for exec
     namespace = {
         'df': df,
@@ -147,17 +137,19 @@ def save_plot(plotly_code, df):
         'px': px  # Include Plotly Express in the namespace
     }
     try:
+        # Validate the generated code
+        if not validate_plotly_code(plotly_code, df):
+            raise ValueError("Validation failed for the generated Plotly code.")
+
         exec(plotly_code, namespace)
         fig = namespace.get('fig', None)
         if fig is None:
             raise ValueError("Plotly code did not create a figure named 'fig'.")
 
-        plot_filename = 'plot.png'
-        fig.write_image(plot_filename, engine='kaleido')
-        logger.info(f"Plot saved as {plot_filename}")
-        return plot_filename
+        # Convert figure to JSON
+        fig_json = fig.to_json()
+        logger.info("Plotly JSON generated successfully.")
+        return fig_json
     except Exception as e:
-        logger.error(f"Error generating plot: {e}")
+        logger.error(f"Error generating Plotly JSON: {e}")
         return None
-
-
