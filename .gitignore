@@ -156,7 +156,6 @@ dmypy.json
 # Custome
 cython_debug/
 data/
-*.png
 *.jpg
 *.csv
 _integ.py
