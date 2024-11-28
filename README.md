@@ -185,6 +185,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## 📞 Contact
 
 For any inquiries or support, please contact [hossein.karimi.0128@gmail.com](mailto:hossein.karimi.0128@gmail.com).
-
----
-```
