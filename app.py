@@ -8,7 +8,9 @@ from utils.schema_extractor import extract_schema
 from utils.summary_generator import generate_summary
 from agents.query_generator import generate_pandas_query
 from agents.response_generator import generate_final_response
-from agents.visualizer import generate_matplotlib_code, save_plot
+# from agents.visualizer import generate_matplotlib_code, save_plot
+from fastapi.middleware.cors import CORSMiddleware
+
 import os
 import logging
 from rich.console import Console
@@ -21,6 +23,13 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 DATA_DIR = "data"
 
 
@@ -78,6 +87,7 @@ async def ask_question(question: str = Form(...), filename: str = Form(...)):
 
     return {"response": final_response}
 
+from agents.visualizer import generate_plotly_code, save_plot
 
 @app.post("/visualize/")
 async def visualize(question: str = Form(...), filename: str = Form(...)):
@@ -85,21 +95,28 @@ async def visualize(question: str = Form(...), filename: str = Form(...)):
     # Load Data
     df = load_csv(f"{DATA_DIR}/{filename}")
 
+    if df is None:
+        logger.error("Failed to load dataframe.")
+        return JSONResponse(
+            content={"error": "Failed to load the dataframe."},
+            status_code=400,
+        )
+
     # Extract Schema
     schema = extract_schema(df)
 
-    # Generate Matplotlib Code
-    matplotlib_code = generate_matplotlib_code(question, schema)
+    # Generate Plotly Code
+    plotly_code = generate_plotly_code(question, schema)
 
-    if not matplotlib_code:
-        logger.error("Failed to generate matplotlib code.")
+    if not plotly_code:
+        logger.error("Failed to generate Plotly code.")
         return JSONResponse(
-            content={"error": "Failed to generate matplotlib code."},
+            content={"error": "Failed to generate Plotly code."},
             status_code=400,
         )
 
     # Save Plot
-    plot_filename = save_plot(matplotlib_code, df)
+    plot_filename = save_plot(plotly_code, df)
 
     if not plot_filename:
         logger.error("Failed to generate the plot.")
@@ -111,7 +128,6 @@ async def visualize(question: str = Form(...), filename: str = Form(...)):
     logger.info(f"Generated plot saved as: {plot_filename}")
 
     return FileResponse(plot_filename, media_type="image/png")
-
 
 if __name__ == "__main__":
     if not os.path.exists(DATA_DIR):
