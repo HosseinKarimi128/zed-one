@@ -85,7 +85,7 @@ async def ask_question(question: str = Form(...), filename: str = Form(...)):
         )
 
     # Execute Query
-    _vars = {"df": df}
+    _vars = {"df": df, 'query_result': None}
     try:
         exec(pandas_query, _vars)
         query_result = _vars.get('query_result', None)

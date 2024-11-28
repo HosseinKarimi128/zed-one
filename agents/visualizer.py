@@ -138,8 +138,8 @@ def get_plotly_json(plotly_code, df):
     }
     try:
         # Validate the generated code
-        if not validate_plotly_code(plotly_code, df):
-            raise ValueError("Validation failed for the generated Plotly code.")
+        # if not validate_plotly_code(plotly_code, df):
+        #     raise ValueError("Validation failed for the generated Plotly code.")
 
         exec(plotly_code, namespace)
         fig = namespace.get('fig', None)

@@ -30,11 +30,13 @@ def generate_pandas_query(question, schema):
                 The code should not have any comments.
                 You should not put any code in triple backticks.
                 The query result should be store in a variable named 'query_result'
+                If user asked about the whole dataset without any sepecific query, you just return query_result=df.columns.to_list()
+
                 For example: 
                     query_result = df[["column1", "column2"]]
+
                 Schema:
                 {schema}
-
                 Pandas Query:
                 """,
             ),

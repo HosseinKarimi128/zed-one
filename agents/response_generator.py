@@ -41,7 +41,7 @@ def generate_final_response(question, query_result, summary):
     chain = prompt | llm 
     _input = {
         "question": question,
-        "query_result": query_result.to_string(index=False),
+        "query_result": str(query_result),
         "summary": summary
     }
     response = chain.invoke(_input)
