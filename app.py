@@ -145,12 +145,17 @@ async def ask_question(
 
 
 @app.post("/visualize/")
-async def visualize(question: str = Form(...), filename: str = Form(...)):
+async def visualize(
+    question: str = Form(...), 
+    filename: str = Form(...), 
+    confirm: bool = Form(False)
+):
     """
     Endpoint to generate a Plotly visualization based on the user's question.
-    Returns the Plotly figure in JSON format for interactive rendering on the frontend.
+    If 'confirm' is False, it returns the count of the data to be visualized.
+    If 'confirm' is True, it returns the final Plotly JSON.
     """
-    logger.info(f"Received visualization request: '{question}' for file: '{filename}'")
+    logger.info(f"Received visualization request: '{question}' for file: '{filename}', confirm={confirm}")
 
     # Load Data
     df = load_csv(f"{DATA_DIR}/{filename}")
@@ -165,29 +170,63 @@ async def visualize(question: str = Form(...), filename: str = Form(...)):
     # Extract Schema
     schema = extract_schema(df)
 
-    # Generate Plotly Code
-    plotly_code = generate_plotly_code(question, schema)
+    # If not confirm, just return the count of the query results
+    if not confirm:
+        # Generate Pandas Query
+        pandas_query = generate_pandas_query(question, schema)
 
-    if not plotly_code:
-        logger.error("Failed to generate Plotly code.")
-        return JSONResponse(
-            content={"error": "Failed to generate Plotly code."},
-            status_code=400,
-        )
+        if not pandas_query:
+            logger.error("Failed to generate a valid pandas query.")
+            return JSONResponse(
+                content={"error": "Failed to generate a valid pandas query."},
+                status_code=400,
+            )
 
-    # Get Plotly JSON
-    plotly_json = get_plotly_json(plotly_code, df)
+        # Execute Query
+        _vars = {"df": df, 'query_result': None}
+        try:
+            exec(pandas_query, _vars)
+            query_result = _vars.get('query_result', None)
+            if query_result is None:
+                raise ValueError("The generated query did not assign a value to 'query_result'.")
 
-    if not plotly_json:
-        logger.error("Failed to generate Plotly JSON.")
-        return JSONResponse(
-            content={"error": "Failed to generate Plotly JSON."},
-            status_code=400,
-        )
+            # Determine the count
+            if isinstance(query_result, (pd.DataFrame, list, dict, set, tuple)):
+                count = len(query_result)
+            else:
+                count = 1  # For scalar results
+            logger.info(f"Number of query results for visualization: {count}")
 
-    logger.info("Plotly JSON generated successfully.")
+        except Exception as e:
+            logger.error(f"Failed to execute query: {e}")
+            return JSONResponse(
+                content={"error": f"Failed to execute query: {e}"},
+                status_code=400,
+            )
 
-    return JSONResponse(content={"plotly_json": plotly_json})
+        return {"count": count}
+    else:
+        # If confirm=True, generate the final Plotly visualization
+        plotly_code = generate_plotly_code(question, schema)
+
+        if not plotly_code:
+            logger.error("Failed to generate Plotly code.")
+            return JSONResponse(
+                content={"error": "Failed to generate Plotly code."},
+                status_code=400,
+            )
+
+        plotly_json = get_plotly_json(plotly_code, df)
+
+        if not plotly_json:
+            logger.error("Failed to generate Plotly JSON.")
+            return JSONResponse(
+                content={"error": "Failed to generate Plotly JSON."},
+                status_code=400,
+            )
+
+        logger.info("Plotly JSON generated successfully.")
+        return JSONResponse(content={"plotly_json": plotly_json})
 
 
 if __name__ == "__main__":

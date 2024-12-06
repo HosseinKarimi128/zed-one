@@ -10,6 +10,7 @@ import plotly.express as px  # Import Plotly Express
 import logging
 from rich.console import Console
 import ast
+import pandas as pd
 
 console = Console()
 load_dotenv()
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Initialize the OpenAI LLM with LangChain
-llm = ChatOpenAI(temperature=0.0, model_name="o1-mini")
+llm = ChatOpenAI(model_name="o1-mini")
 
 
 def generate_plotly_code(question, schema):
@@ -27,7 +28,7 @@ def generate_plotly_code(question, schema):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
-                "system",
+                "human",
                 """
                 You are a data visualization expert. Based on the following schema and question, generate Plotly code to visualize the data appropriately.
                 Provide only the Python code that creates a Plotly figure named 'fig'. Do not include any explanations or comments.
@@ -36,6 +37,7 @@ def generate_plotly_code(question, schema):
                 Do not include any commands that display or show the figure, such as `fig.show()`.
                 You may use Plotly Express (imported as px) or Plotly Graph Objects (imported as go).
                 Do not use triple backticks.
+                Do not use  ```python```, just use plain text.
 
                 Schema:
                 {schema}
@@ -134,6 +136,7 @@ def get_plotly_json(plotly_code, df):
         'df': df,
         'go': go,
         'pio': pio,
+        'pd': pd,
         'px': px  # Include Plotly Express in the namespace
     }
     try:

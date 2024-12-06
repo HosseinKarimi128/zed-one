@@ -29,6 +29,7 @@ def generate_pandas_query(question, schema):
                 Return only the pandas query code without any explanations. You should return the code not human-like text.
                 The code should not have any comments.
                 You should not put any code in triple backticks.
+                Do not use  ```python```, just use plain text.
                 The query result should be store in a variable named 'query_result'
                 If user asked about the whole dataset without any sepecific query, you just return query_result=df.head()
                 If user asked for help in a decision, generate a good pandas query based on schema to help him. 

@@ -22,6 +22,16 @@ if 'current_question' not in st.session_state:
 if 'query_count' not in st.session_state:
     st.session_state.query_count = 0
 
+if 'visualization_step' not in st.session_state:
+    st.session_state.visualization_step = 0
+
+if 'current_viz_question' not in st.session_state:
+    st.session_state.current_viz_question = ''
+
+if 'viz_query_count' not in st.session_state:
+    st.session_state.viz_query_count = 0
+
+
 # ----------------------------
 # File Upload Section
 # ----------------------------
@@ -114,32 +124,82 @@ if st.session_state.uploaded_filename:
                 st.session_state.query_count = 0
 else:
     st.info("Please upload a CSV file to ask questions about your data.")
-
 # ----------------------------
 # Visualization Section
 # ----------------------------
 st.header("📈 Data Visualization")
 
 if st.session_state.uploaded_filename:
-    viz_question = st.text_input("Enter your visualization request")
+    if st.session_state.visualization_step == 0:
+        viz_question = st.text_input("Enter your visualization request")
 
-    if st.button("🎨 Generate Visualization") and viz_question:
-        with st.spinner("Generating visualization..."):
-            data = {'question': viz_question, 'filename': st.session_state.uploaded_filename}
-            response = requests.post(f"{API_URL}/visualize/", data=data)
+        if st.button("🔍 Get Visualization Result Count") and viz_question:
+            with st.spinner("Analyzing your visualization request..."):
+                data = {
+                    'question': viz_question,
+                    'filename': st.session_state.uploaded_filename,
+                    'confirm': False
+                }
+                response = requests.post(f"{API_URL}/visualize/", data=data)
 
-        if response.status_code == 200:
-            plotly_json = response.json().get('plotly_json', None)
-            if plotly_json:
-                try:
-                    # Convert JSON string to Plotly figure
-                    fig = pio.from_json(plotly_json)
-                    st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"⚠️ Failed to render Plotly figure. Error: {e}")
+            if response.status_code == 200:
+                count = response.json().get('count', 0)
+                st.session_state.current_viz_question = viz_question
+                st.session_state.viz_query_count = count
+                st.session_state.visualization_step = 1
             else:
-                st.error("⚠️ Failed to retrieve Plotly JSON.")
-        else:
-            st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
+                st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
+    elif st.session_state.visualization_step == 1:
+        count = st.session_state.viz_query_count
+        st.write(f"**Number of results for visualization:** {count}")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("✅ Continue"):
+                with st.spinner("Generating visualization..."):
+                    data = {
+                        'question': st.session_state.current_viz_question,
+                        'filename': st.session_state.uploaded_filename,
+                        'confirm': True
+                    }
+                    response = requests.post(f"{API_URL}/visualize/", data=data)
+
+                if response.status_code == 200:
+                    plotly_json = response.json().get('plotly_json', None)
+                    if plotly_json:
+                        try:
+                            fig = pio.from_json(plotly_json)
+                            st.plotly_chart(fig, use_container_width=True)
+                            # Reset the visualization step
+                            st.session_state.visualization_step = 0
+                            st.session_state.current_viz_question = ''
+                            st.session_state.viz_query_count = 0
+                        except Exception as e:
+                            st.error(f"⚠️ Failed to render Plotly figure. Error: {e}")
+                    else:
+                        st.error("⚠️ Failed to retrieve Plotly JSON.")
+                else:
+                    st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
+        with col2:
+            if st.button("🔄 Try Another Query"):
+                with st.spinner("Generating a new query..."):
+                    data = {
+                        'question': st.session_state.current_viz_question,
+                        'filename': st.session_state.uploaded_filename,
+                        'confirm': False
+                    }
+                    response = requests.post(f"{API_URL}/visualize/", data=data)
+
+                if response.status_code == 200:
+                    new_count = response.json().get('count', 0)
+                    st.session_state.viz_query_count = new_count
+                else:
+                    st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
+        with col3:
+            if st.button("🧐 Another Visualization"):
+                st.write("You chose to give up on this visualization query.")
+                st.session_state.visualization_step = 0
+                st.session_state.current_viz_question = ''
+                st.session_state.viz_query_count = 0
 else:
     st.info("Please upload a CSV file to generate visualizations.")
