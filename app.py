@@ -1,5 +1,4 @@
-# app.py
-
+import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -94,12 +93,14 @@ async def ask_question(
         try:
             exec(pandas_query, _vars)
             query_result = _vars.get('query_result', None)
-            try:
-                count = len(query_result)
-            except TypeError:
-                count = 1  # For scalar results
             if query_result is None:
                 raise ValueError("The generated query did not assign a value to 'query_result'.")
+            
+            # Determine the count based on the type of query_result
+            if isinstance(query_result, (pd.DataFrame, list, dict, set, tuple)):
+                count = len(query_result)
+            else:
+                count = 1  # For scalar results
             logger.info(f"Number of query results: {count}")
         except Exception as e:
             logger.error(f"Failed to execute query: {e}")
@@ -190,5 +191,4 @@ async def visualize(question: str = Form(...), filename: str = Form(...)):
 
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

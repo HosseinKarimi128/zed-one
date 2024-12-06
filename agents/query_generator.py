@@ -15,7 +15,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Initialize the OpenAI LLM with LangChain
-llm = ChatOpenAI(temperature=0.0,model_name="gpt-4o-mini")
+llm = ChatOpenAI(model_name="o1-mini")
 
 def generate_pandas_query(question, schema):
     logger.info("Generating pandas query.")
@@ -23,7 +23,7 @@ def generate_pandas_query(question, schema):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
-                "system",
+                "human",
                 """
                 You are a data analyst. Based on the following schema and question, generate an efficient pandas query.
                 Return only the pandas query code without any explanations. You should return the code not human-like text.

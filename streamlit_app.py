@@ -1,5 +1,3 @@
-# streamlit_app.py
-
 import streamlit as st
 import requests
 import plotly.io as pio
@@ -20,6 +18,9 @@ if 'question_step' not in st.session_state:
 
 if 'current_question' not in st.session_state:
     st.session_state.current_question = ''
+
+if 'query_count' not in st.session_state:
+    st.session_state.query_count = 0
 
 # ----------------------------
 # File Upload Section
@@ -61,8 +62,8 @@ if st.session_state.uploaded_filename:
             if response.status_code == 200:
                 count = response.json().get('count', 0)
                 st.session_state.current_question = question
-                st.session_state.question_step = 1
                 st.session_state.query_count = count
+                st.session_state.question_step = 1
             else:
                 st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
     elif st.session_state.question_step == 1:
@@ -86,17 +87,31 @@ if st.session_state.uploaded_filename:
                     st.write(answer)
                     # Reset the question step
                     st.session_state.question_step = 0
+                    st.session_state.current_question = ''
+                    st.session_state.query_count = 0
                 else:
                     st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
         with col2:
             if st.button("🔄 Try Another Query"):
-                st.session_state.question_step = 0
-                st.session_state.current_question = ''
+                with st.spinner("Generating a new query..."):
+                    data = {
+                        'question': st.session_state.current_question,
+                        'filename': st.session_state.uploaded_filename,
+                        'confirm': False
+                    }
+                    response = requests.post(f"{API_URL}/ask_question/", data=data)
+
+                if response.status_code == 200:
+                    new_count = response.json().get('count', 0)
+                    st.session_state.query_count = new_count
+                else:
+                    st.error(f"⚠️ Error: {response.json().get('error', 'Unknown error')}")
         with col3:
-            if st.button("** 🤔 New question ** "):
+            if st.button("🧐 Another Question"):
                 st.write("You chose to give up on this query.")
                 st.session_state.question_step = 0
                 st.session_state.current_question = ''
+                st.session_state.query_count = 0
 else:
     st.info("Please upload a CSV file to ask questions about your data.")
 
