@@ -70,7 +70,7 @@ async def ask_question(question: str = Form(...), filename: str = Form(...)):
 
     # Extract Schema
     schema = extract_schema(df)
-
+    # console.log(schema)
     # Generate Summary
     summary = generate_summary(df)
 
@@ -89,6 +89,12 @@ async def ask_question(question: str = Form(...), filename: str = Form(...)):
     try:
         exec(pandas_query, _vars)
         query_result = _vars.get('query_result', None)
+        try:
+            logger.info(f"Numer of query results: {len(query_result)}")
+        except:
+            logger.info(f"query result is: {query_result}")
+        # user should decied continue or stop the process using cli
+        # breakpoint()
         if query_result is None:
             raise ValueError("The generated query did not assign a value to 'query_result'.")
         logger.info("Successfully executed pandas query.")

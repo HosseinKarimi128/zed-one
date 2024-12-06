@@ -30,7 +30,11 @@ def generate_pandas_query(question, schema):
                 The code should not have any comments.
                 You should not put any code in triple backticks.
                 The query result should be store in a variable named 'query_result'
-                If user asked about the whole dataset without any sepecific query, you just return query_result=df.columns.to_list()
+                If user asked about the whole dataset without any sepecific query, you just return query_result=df.head()
+                If user asked for help in a decision, generate a good pandas query based on schema to help him. 
+                Note that, when you want generate a query like df["columnX"] == "value", you should note the "value" be in provided unique values of columnX.
+                When users question is about a specific district, your query should be filtered on that district.
+                When users question is about a specific product, your query should be filtered on that product conisdering provided unique values.
 
                 For example: 
                     query_result = df[["column1", "column2"]]
