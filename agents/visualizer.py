@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Initialize the OpenAI LLM with LangChain
-llm = ChatOpenAI(temperature=0.0, model_name="gpt-4o-mini")
+llm = ChatOpenAI(temperature=0.0, model_name="o1-mini")
 
 
 def generate_plotly_code(question, schema):
