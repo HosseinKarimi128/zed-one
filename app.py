@@ -1,6 +1,5 @@
 # app.py
 
-import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +13,7 @@ from agents.visualizer import generate_plotly_code, get_plotly_json
 import os
 import logging
 from rich.console import Console
+import pandas as pd
 
 console = Console()
 
@@ -52,12 +52,17 @@ async def upload_csv(file: UploadFile = File(...)):
 
 
 @app.post("/ask_question/")
-async def ask_question(question: str = Form(...), filename: str = Form(...)):
+async def ask_question(
+    question: str = Form(...),
+    filename: str = Form(...),
+    confirm: bool = Form(False)
+):
     """
     Endpoint to ask a question about the uploaded CSV data.
-    Generates a pandas query and returns a response based on the query result.
+    If 'confirm' is False, it returns the count of query results.
+    If 'confirm' is True, it returns the final response.
     """
-    logger.info(f"Received question: '{question}' for file: '{filename}'")
+    logger.info(f"Received question: '{question}' for file: '{filename}', confirm={confirm}")
 
     # Load Data
     df = load_csv(f"{DATA_DIR}/{filename}")
@@ -70,47 +75,72 @@ async def ask_question(question: str = Form(...), filename: str = Form(...)):
 
     # Extract Schema
     schema = extract_schema(df)
-    # console.log(schema)
     # Generate Summary
     summary = generate_summary(df)
 
-    # Generate Pandas Query
-    pandas_query = generate_pandas_query(question, schema)
+    if not confirm:
+        # Generate Pandas Query
+        pandas_query = generate_pandas_query(question, schema)
 
-    if not pandas_query:
-        logger.error("Failed to generate a valid pandas query.")
-        return JSONResponse(
-            content={"error": "Failed to generate a valid pandas query."},
-            status_code=400,
-        )
+        if not pandas_query:
+            logger.error("Failed to generate a valid pandas query.")
+            return JSONResponse(
+                content={"error": "Failed to generate a valid pandas query."},
+                status_code=400,
+            )
 
-    # Execute Query
-    _vars = {"df": df, 'query_result': None}
-    try:
-        exec(pandas_query, _vars)
-        query_result = _vars.get('query_result', None)
+        # Execute Query
+        _vars = {"df": df, 'query_result': None}
         try:
-            logger.info(f"Numer of query results: {len(query_result)}")
-        except:
-            logger.info(f"query result is: {query_result}")
-        # user should decied continue or stop the process using cli
-        # breakpoint()
-        if query_result is None:
-            raise ValueError("The generated query did not assign a value to 'query_result'.")
-        logger.info("Successfully executed pandas query.")
-    except Exception as e:
-        logger.error(f"Failed to execute query: {e}")
-        return JSONResponse(
-            content={"error": f"Failed to execute query: {e}"},
-            status_code=400,
-        )
+            exec(pandas_query, _vars)
+            query_result = _vars.get('query_result', None)
+            try:
+                count = len(query_result)
+            except TypeError:
+                count = 1  # For scalar results
+            if query_result is None:
+                raise ValueError("The generated query did not assign a value to 'query_result'.")
+            logger.info(f"Number of query results: {count}")
+        except Exception as e:
+            logger.error(f"Failed to execute query: {e}")
+            return JSONResponse(
+                content={"error": f"Failed to execute query: {e}"},
+                status_code=400,
+            )
 
-    # Generate Final Response
-    final_response = generate_final_response(question, query_result, summary)
+        return {"count": count}
+    else:
+        # Generate Pandas Query
+        pandas_query = generate_pandas_query(question, schema)
 
-    logger.info(f"Generated response: {final_response}")
+        if not pandas_query:
+            logger.error("Failed to generate a valid pandas query.")
+            return JSONResponse(
+                content={"error": "Failed to generate a valid pandas query."},
+                status_code=400,
+            )
 
-    return {"response": final_response}
+        # Execute Query
+        _vars = {"df": df, 'query_result': None}
+        try:
+            exec(pandas_query, _vars)
+            query_result = _vars.get('query_result', None)
+            if query_result is None:
+                raise ValueError("The generated query did not assign a value to 'query_result'.")
+            logger.info("Successfully executed pandas query.")
+        except Exception as e:
+            logger.error(f"Failed to execute query: {e}")
+            return JSONResponse(
+                content={"error": f"Failed to execute query: {e}"},
+                status_code=400,
+            )
+
+        # Generate Final Response
+        final_response = generate_final_response(question, query_result, summary)
+
+        logger.info(f"Generated response: {final_response}")
+
+        return {"response": final_response}
 
 
 @app.post("/visualize/")
@@ -160,4 +190,5 @@ async def visualize(question: str = Form(...), filename: str = Form(...)):
 
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -25,7 +25,7 @@ def run_streamlit():
     Assumes that 'streamlit_app.py' is the Streamlit application file.
     """
     return subprocess.Popen(
-        ["streamlit", "run", "streamlit_app.py"],
+        ["streamlit", "run", "streamlit_app.py", "--server.maxUploadSize", "300"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
