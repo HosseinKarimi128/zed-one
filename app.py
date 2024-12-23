@@ -3,7 +3,7 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from utils.data_loader import load_csv
-from utils.schema_extractor import extract_schema
+from utils.schema_extractor import extract_schema, extract_data_dictionary
 from utils.summary_generator import generate_summary
 from agents.query_generator import generate_pandas_query
 from agents.response_generator import generate_final_response
@@ -74,12 +74,13 @@ async def ask_question(
 
     # Extract Schema
     schema = extract_schema(df)
+    data_dictionary = extract_data_dictionary(df)
     # Generate Summary
     summary = generate_summary(df)
 
     if not confirm:
         # Generate Pandas Query
-        pandas_query = generate_pandas_query(question, schema)
+        pandas_query = generate_pandas_query(question, schema, data_dictionary)
 
         if not pandas_query:
             logger.error("Failed to generate a valid pandas query.")
@@ -112,7 +113,7 @@ async def ask_question(
         return {"count": count}
     else:
         # Generate Pandas Query
-        pandas_query = generate_pandas_query(question, schema)
+        pandas_query = generate_pandas_query(question, schema, data_dictionary)
 
         if not pandas_query:
             logger.error("Failed to generate a valid pandas query.")
@@ -169,11 +170,11 @@ async def visualize(
 
     # Extract Schema
     schema = extract_schema(df)
-
+    data_dictionary = extract_data_dictionary(df)
     # If not confirm, just return the count of the query results
     if not confirm:
         # Generate Pandas Query
-        pandas_query = generate_pandas_query(question, schema)
+        pandas_query = generate_pandas_query(question, schema, data_dictionary)
 
         if not pandas_query:
             logger.error("Failed to generate a valid pandas query.")

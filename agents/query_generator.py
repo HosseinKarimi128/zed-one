@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Initialize the OpenAI LLM with LangChain
 llm = ChatOpenAI(model_name="o1-mini")
 
-def generate_pandas_query(question, schema):
+def generate_pandas_query(question, schema, data_dictionary):
     logger.info("Generating pandas query.")
 
     prompt = ChatPromptTemplate.from_messages(
@@ -25,7 +25,7 @@ def generate_pandas_query(question, schema):
             (
                 "human",
                 """
-                You are a data analyst. Based on the following schema and question, generate an efficient pandas query.
+                You are a data analyst. Based on the following schema, data dictionary and question, generate an efficient pandas query.
                 Return only the pandas query code without any explanations. You should return the code not human-like text.
                 The code should not have any comments.
                 You should not put any code in triple backticks.
@@ -42,6 +42,10 @@ def generate_pandas_query(question, schema):
 
                 Schema:
                 {schema}
+
+                Data Dictionary:
+                {data_dictionary}
+
                 Pandas Query:
                 """,
             ),
@@ -49,7 +53,7 @@ def generate_pandas_query(question, schema):
         ]
     )
     chain = prompt | llm 
-    _input = {"schema": schema, "question": question}
+    _input = {"schema": schema, "question": question, "data_dictionary": data_dictionary}
     response = chain.invoke(_input)
 
 

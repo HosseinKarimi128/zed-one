@@ -14,7 +14,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 # Initialize the OpenAI LLM with LangChain
-llm = ChatOpenAI(temperature=0.5, model_name="gpt-4o-mini")
+llm = ChatOpenAI(temperature=0.5, model_name="gpt-4o")
 
 def generate_final_response(question, query_result, summary):
     logger.info("Generating final response.")

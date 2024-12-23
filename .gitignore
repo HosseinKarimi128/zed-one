@@ -162,6 +162,7 @@ data/
 _integ.py
 combined.py
 /results
+data_dictionary.txt
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
